@@ -184,9 +184,9 @@
 
       <!-- Only named colors are accepted, see w3 color chart
           https://www.w3.org/wiki/CSS/Properties/color/keywords -->
-      <SetVariable name="SignalHighColor">mediumblue</SetVariable><!-- #0000cd -->
-      <SetVariable name="SignalMidColor">darkgreen</SetVariable><!-- #006400 -->
-      <SetVariable name="SignalLowColor">orangered</SetVariable><!-- #ff4500 -->
+      <SetVariable name="SignalHighColor">snow</SetVariable><!-- #fffafa -->
+      <SetVariable name="SignalMidColor">orange</SetVariable><!-- #ffa500 -->
+      <SetVariable name="SignalLowColor">dodgerblue</SetVariable><!-- #1e90ff -->
 
       <SetVariable name="DimBrightThresholdOverview">127</SetVariable>
       <SetVariable name="DimBrightThresholdWaveform">105</SetVariable>
@@ -328,9 +328,9 @@
       <SetVariable name="SignalColor_12">#e7c413</SetVariable>
       <SetVariable name="SignalColor_34">#09b2ae</SetVariable>
       <!-- default colors -->
-      <SetVariable name="SignalHighColor">blue</SetVariable>
-      <SetVariable name="SignalMidColor">green</SetVariable>
-      <SetVariable name="SignalLowColor">red</SetVariable>
+      <SetVariable name="SignalHighColor">oldlace</SetVariable>
+      <SetVariable name="SignalMidColor">darkorange</SetVariable>
+      <SetVariable name="SignalLowColor">dodgerblue</SetVariable>
       <SetVariable name="AxesColor">#ffffff</SetVariable>
       <SetVariable name="BeatColor">#ffffff</SetVariable>
       <SetVariable name="PlayPosColor">#00c8ff</SetVariable>
