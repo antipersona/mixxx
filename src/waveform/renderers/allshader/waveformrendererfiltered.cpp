@@ -81,7 +81,7 @@ bool WaveformRendererFiltered::preprocessInner() {
     // Per-band gain from the EQ knobs.
     float allGain(1.0);
     float bandGain[3] = {1.0, 1.0, 1.0};
-    getGains(&allGain, true, &bandGain[0], &bandGain[1], &bandGain[2]);
+//     getGains(&allGain, true, &bandGain[0], &bandGain[1], &bandGain[2]);
 
     const float breadth = static_cast<float>(m_waveformRenderer->getBreadth());
     const float halfBreadth = breadth / 2.0f;
@@ -101,17 +101,21 @@ bool WaveformRendererFiltered::preprocessInner() {
     geometry().allocate(reserved);
     markDirtyGeometry();
 
+//     QColor lowColor(30,144,255);
+//     QColor midColor(255,140,0);
+//     QColor highColor(224,255,255);
+
     QVector3D rgb[3];
     if (m_bRgbStacked) {
-        rgb[0] = QVector3D(static_cast<float>(m_rgbLowColor_r),
-                static_cast<float>(m_rgbLowColor_g),
-                static_cast<float>(m_rgbLowColor_b));
-        rgb[1] = QVector3D(static_cast<float>(m_rgbMidColor_r),
-                static_cast<float>(m_rgbMidColor_g),
-                static_cast<float>(m_rgbMidColor_b));
-        rgb[2] = QVector3D(static_cast<float>(m_rgbHighColor_r),
-                static_cast<float>(m_rgbHighColor_g),
-                static_cast<float>(m_rgbHighColor_b));
+        rgb[0] = QVector3D(static_cast<float>(30./255.),
+                static_cast<float>(144./255.),
+                static_cast<float>(255./255.));
+        rgb[1] = QVector3D(static_cast<float>(255./255.),
+                static_cast<float>(140./255.), // m_rgbMidColor_g
+                static_cast<float>(0./255.));
+        rgb[2] = QVector3D(static_cast<float>(255./255.),
+                static_cast<float>(255./255.),
+                static_cast<float>(224./255.));
     } else {
         rgb[0] = QVector3D(static_cast<float>(m_lowColor_r),
                 static_cast<float>(m_lowColor_g),
