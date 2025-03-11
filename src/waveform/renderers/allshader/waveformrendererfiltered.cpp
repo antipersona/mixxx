@@ -80,7 +80,7 @@ bool WaveformRendererFiltered::preprocessInner() {
 
     // Per-band gain from the EQ knobs.
     float allGain(1.0);
-    float bandGain[3] = {1.0, 1.0, 1.0};
+    float bandGain[4] = {1.0, 1.0, 1.0, 1.0};
 //     getGains(&allGain, true, &bandGain[0], &bandGain[1], &bandGain[2]);
 
     const float breadth = static_cast<float>(m_waveformRenderer->getBreadth());
@@ -95,7 +95,7 @@ bool WaveformRendererFiltered::preprocessInner() {
     const int numVerticesPerLine = 6; // 2 triangles
 
     // low, mid, high + horizontal axis
-    int reserved = numVerticesPerLine * (pixelLength * 3 + 1);
+    int reserved = numVerticesPerLine * (pixelLength * 4 + 1);
 
     geometry().setDrawingMode(Geometry::DrawingMode::Triangles);
     geometry().allocate(reserved);
@@ -105,17 +105,20 @@ bool WaveformRendererFiltered::preprocessInner() {
 //     QColor midColor(255,140,0);
 //     QColor highColor(224,255,255);
 
-    QVector3D rgb[3];
+    QVector3D rgb[4];
     if (m_bRgbStacked) {
-        rgb[0] = QVector3D(static_cast<float>(30./255.),
-                static_cast<float>(144./255.),
-                static_cast<float>(255./255.));
-        rgb[1] = QVector3D(static_cast<float>(255./255.),
-                static_cast<float>(140./255.), // m_rgbMidColor_g
-                static_cast<float>(0./255.));
-        rgb[2] = QVector3D(static_cast<float>(255./255.),
-                static_cast<float>(255./255.),
-                static_cast<float>(224./255.));
+        rgb[0] = QVector3D(static_cast<float>(0),
+                static_cast<float>(86/255.f),
+                static_cast<float>(1));
+        rgb[1] = QVector3D(static_cast<float>(252.f/255.f),
+                static_cast<float>(169.f/255.f), // m_rgbMidColor_g
+                static_cast<float>(1.f/255.f));
+        rgb[2] = QVector3D(static_cast<float>(181.f/255.f),
+                static_cast<float>(107.f/255.f),
+                static_cast<float>(4.f/255.f));
+        rgb[3] = QVector3D(static_cast<float>(246.f/255.f),
+                static_cast<float>(235.f/255.f),
+                static_cast<float>(215.f/255.f));
     } else {
         rgb[0] = QVector3D(static_cast<float>(m_lowColor_r),
                 static_cast<float>(m_lowColor_g),
@@ -123,7 +126,10 @@ bool WaveformRendererFiltered::preprocessInner() {
         rgb[1] = QVector3D(static_cast<float>(m_midColor_r),
                 static_cast<float>(m_midColor_g),
                 static_cast<float>(m_midColor_b));
-        rgb[2] = QVector3D(static_cast<float>(m_highColor_r),
+        rgb[2] = QVector3D(static_cast<float>(m_midColor_r),
+                static_cast<float>(m_midColor_g),
+                static_cast<float>(m_midColor_b));
+        rgb[3] = QVector3D(static_cast<float>(m_highColor_r),
                 static_cast<float>(m_highColor_g),
                 static_cast<float>(m_highColor_b));
     }
@@ -137,13 +143,15 @@ bool WaveformRendererFiltered::preprocessInner() {
                     static_cast<float>(m_axesColor_g),
                     static_cast<float>(m_axesColor_b)});
 
-    RGBVertexUpdater vertexUpdater[3]{
-            {geometry().vertexDataAs<Geometry::RGBColoredPoint2D>() +
-                    numVerticesPerLine},
-            {geometry().vertexDataAs<Geometry::RGBColoredPoint2D>() +
-                    numVerticesPerLine * (1 + pixelLength)},
-            {geometry().vertexDataAs<Geometry::RGBColoredPoint2D>() +
-                    numVerticesPerLine * (1 + pixelLength * 2)}};
+    RGBVertexUpdater vertexUpdater[4]{
+                {geometry().vertexDataAs<Geometry::RGBColoredPoint2D>() +
+                        numVerticesPerLine},
+                {geometry().vertexDataAs<Geometry::RGBColoredPoint2D>() +
+                        numVerticesPerLine * (1 + pixelLength)},
+                {geometry().vertexDataAs<Geometry::RGBColoredPoint2D>() +
+                        numVerticesPerLine * (1 + pixelLength * 2)},
+                {geometry().vertexDataAs<Geometry::RGBColoredPoint2D>() +
+                        numVerticesPerLine * (1 + pixelLength * 3)}};
     const double maxSamplingRange = visualIncrementPerPixel / 2.0;
 
     for (int pos = 0; pos < pixelLength; ++pos) {
@@ -157,7 +165,7 @@ bool WaveformRendererFiltered::preprocessInner() {
         const float fpos = static_cast<float>(pos) * invDevicePixelRatio;
 
         // 3 bands, 2 channels
-        float max[3][2]{};
+        float max[4][2]{};
         uchar u8max[3][2]{};
         for (int chn = 0; chn < 2; chn++) {
             for (int i = visualIndexStart + chn; i < visualIndexStop + chn; i += 2) {
@@ -170,14 +178,15 @@ bool WaveformRendererFiltered::preprocessInner() {
             // Cast to float
             max[0][chn] = static_cast<float>(u8max[0][chn]);
             max[1][chn] = static_cast<float>(u8max[1][chn]);
-            max[2][chn] = static_cast<float>(u8max[2][chn]);
+            max[2][chn] = static_cast<float>(math_min(u8max[0][chn], u8max[1][chn])); // minimo entre medios y bajos
+            max[3][chn] = static_cast<float>(u8max[2][chn]);
         }
 
         // TODO: this can be optimized by using one geometrynode per band
         // + one for the horizontal axis, and uniform color materials,
         // instead of passing constant color as vertex.
 
-        for (int bandIndex = 0; bandIndex < 3; bandIndex++) {
+        for (int bandIndex = 0; bandIndex < 4; bandIndex++) {
             max[bandIndex][0] *= bandGain[bandIndex];
             max[bandIndex][1] *= bandGain[bandIndex];
 
