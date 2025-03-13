@@ -2,6 +2,7 @@
 
 #include <QDomNode>
 
+#include "rendergraph/material/rgbmaterial.h"
 #include "moc_waveformrenderbeat.cpp"
 #include "rendergraph/geometry.h"
 #include "rendergraph/material/unicolormaterial.h"
@@ -10,6 +11,8 @@
 #include "track/track.h"
 #include "waveform/renderers/waveformwidgetrenderer.h"
 #include "widget/wskincolor.h"
+#include "rendergraph/vertexupdaters/rgbvertexupdater.h"
+
 
 using namespace rendergraph;
 
@@ -19,13 +22,17 @@ WaveformRenderBeat::WaveformRenderBeat(WaveformWidgetRenderer* waveformWidget,
         ::WaveformRendererAbstract::PositionSource type)
         : ::WaveformRendererAbstract(waveformWidget),
           m_isSlipRenderer(type == ::WaveformRendererAbstract::Slip) {
-    initForRectangles<UniColorMaterial>(0);
+    initForRectangles<RGBMaterial>(0);
     setUsePreprocess(true);
 }
 
 void WaveformRenderBeat::setup(const QDomNode& node, const SkinContext& skinContext) {
     m_color = QColor(skinContext.selectString(node, QStringLiteral("BeatColor")));
     m_color = WSkinColor::getCorrectColor(m_color).toRgb();
+    // m_barColor = QColor(255, 0, 0);
+    // m_barColor = WSkinColor::getCorrectColor(m_barColor).toRgb();
+    m_beatColor = QVector3D(static_cast<float>(1.f), static_cast<float>(1.f), static_cast<float>(1.f));
+    m_barColor = QVector3D(static_cast<float>(1.f), static_cast<float>(0.f), static_cast<float>(0.f));
 }
 
 void WaveformRenderBeat::draw(QPainter* painter, QPaintEvent* event) {
@@ -99,14 +106,31 @@ bool WaveformRenderBeat::preprocessInner() {
         numBeatsInRange++;
     }
 
-    const int reserved = numBeatsInRange * numVerticesPerLine;
+    // fix cutre a falta de barras
+    /*
+        ponemos una barra roja cada 4 beats, en la mayoría de canciones 
+        coincide con cada barra del compas 4/4
+        y si no, pues viene bien para orientarse
+    */
+    int barPosition = 0;
+    for (auto it = trackBeats->cfirstmarker();
+            it != trackBeats->iteratorFrom(startPosition) && it != trackBeats->cend() && *it <= endPosition;
+            ++it) {
+        barPosition++;
+    }
+    barPosition %= 4;
+    barPosition = (4 - barPosition) % 4;
+
+    const int reserved = (numBeatsInRange + 1) * numVerticesPerLine;
+    geometry().setDrawingMode(Geometry::DrawingMode::Triangles);
     geometry().allocate(reserved);
+    
 
-    VertexUpdater vertexUpdater{geometry().vertexDataAs<Geometry::Point2D>()};
-
+    RGBVertexUpdater vertexUpdater{geometry().vertexDataAs<Geometry::RGBColoredPoint2D>()};
+    int b = 0;
     for (auto it = trackBeats->iteratorFrom(startPosition);
             it != trackBeats->cend() && *it <= endPosition;
-            ++it) {
+            ++it, ++b) {
         double beatPosition = it->toEngineSamplePos();
         double xBeatPoint =
                 m_waveformRenderer->transformSamplePositionInRendererWorld(
@@ -117,14 +141,26 @@ bool WaveformRenderBeat::preprocessInner() {
         const float x1 = static_cast<float>(xBeatPoint);
         const float x2 = x1 + 1.f;
 
-        vertexUpdater.addRectangle({x1, 0.f},
-                {x2, m_isSlipRenderer ? rendererBreadth / 2 : rendererBreadth});
+        if (b % 4 == barPosition) {
+            vertexUpdater.addRectangle({x1, 0.f},
+                {x2, m_isSlipRenderer ? rendererBreadth / 2 : rendererBreadth},
+                {m_barColor}
+            );
+        }
+        else {
+            vertexUpdater.addRectangle({x1, 0.f},
+                {x2, m_isSlipRenderer ? rendererBreadth / 2 : rendererBreadth},
+                {m_beatColor}
+            );
+        }
+
     }
+    
     markDirtyGeometry();
 
     DEBUG_ASSERT(reserved == vertexUpdater.index());
 
-    material().setUniform(1, m_color);
+    // material().setUniform(1, m_color);
     markDirtyMaterial();
 
     return true;
