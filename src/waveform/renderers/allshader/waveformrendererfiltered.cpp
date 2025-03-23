@@ -95,7 +95,7 @@ bool WaveformRendererFiltered::preprocessInner() {
     const int numVerticesPerLine = 6; // 2 triangles
 
     // low, mid, high + horizontal axis
-    int reserved = numVerticesPerLine * (pixelLength * 4 + 1);
+    int reserved = numVerticesPerLine * (pixelLength * m_numBands + 1);
 
     geometry().setDrawingMode(Geometry::DrawingMode::Triangles);
     geometry().allocate(reserved);
@@ -105,15 +105,15 @@ bool WaveformRendererFiltered::preprocessInner() {
 //     QColor midColor(255,140,0);
 //     QColor highColor(224,255,255);
 
-    QVector3D rgb[4];
+    QVector3D rgb[m_numBands];
     if (m_bRgbStacked) {
         rgb[0] = QVector3D(static_cast<float>(0),
                 static_cast<float>(86/255.f),
                 static_cast<float>(1));
-        rgb[1] = QVector3D(static_cast<float>(252.f/255.f),
+        rgb[2] = QVector3D(static_cast<float>(252.f/255.f),
                 static_cast<float>(169.f/255.f), // m_rgbMidColor_g
                 static_cast<float>(1.f/255.f));
-        rgb[2] = QVector3D(static_cast<float>(181.f/255.f),
+        rgb[1] = QVector3D(static_cast<float>(181.f/255.f),
                 static_cast<float>(107.f/255.f),
                 static_cast<float>(4.f/255.f));
         rgb[3] = QVector3D(static_cast<float>(246.f/255.f),
@@ -152,6 +152,7 @@ bool WaveformRendererFiltered::preprocessInner() {
                         numVerticesPerLine * (1 + pixelLength * 2)},
                 {geometry().vertexDataAs<Geometry::RGBColoredPoint2D>() +
                         numVerticesPerLine * (1 + pixelLength * 3)}};
+
     const double maxSamplingRange = visualIncrementPerPixel / 2.0;
 
     for (int pos = 0; pos < pixelLength; ++pos) {
@@ -164,13 +165,12 @@ bool WaveformRendererFiltered::preprocessInner() {
 
         const float fpos = static_cast<float>(pos) * invDevicePixelRatio;
 
-        // 3 bands, 2 channels
-        float max[4][2]{};
-        uchar u8max[3][2]{};
+        // 4 bands, 2 channels
+        float max[m_numBands][2]{};
+        uchar u8max[3][2]{}; // 3 eqs?
         for (int chn = 0; chn < 2; chn++) {
             for (int i = visualIndexStart + chn; i < visualIndexStop + chn; i += 2) {
                 const WaveformData& waveformData = data[i];
-
                 u8max[0][chn] = math_max(u8max[0][chn], waveformData.filtered.low);
                 u8max[1][chn] = math_max(u8max[1][chn], waveformData.filtered.mid);
                 u8max[2][chn] = math_max(u8max[2][chn], waveformData.filtered.high);
@@ -186,9 +186,9 @@ bool WaveformRendererFiltered::preprocessInner() {
         // + one for the horizontal axis, and uniform color materials,
         // instead of passing constant color as vertex.
 
-        for (int bandIndex = 0; bandIndex < 4; bandIndex++) {
-            max[bandIndex][0] *= bandGain[bandIndex];
-            max[bandIndex][1] *= bandGain[bandIndex];
+        for (int bandIndex = 0; bandIndex < m_numBands; bandIndex++) {
+            max[bandIndex][0] *= bandGain[bandIndex] * allGain;
+            max[bandIndex][1] *= bandGain[bandIndex] * allGain;
 
             vertexUpdater[bandIndex].addRectangle(
                     {fpos - halfPixelSize,
