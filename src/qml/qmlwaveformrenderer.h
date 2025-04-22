@@ -397,7 +397,8 @@ class QmlWaveformRendererMark
   signals:
     void playMarkerColorChanged(const QColor&);
     void playMarkerBackgroundChanged(const QColor&);
-    void defaultMarkChanged(mixxx::qml::QmlWaveformMark*);
+    void defaultMarkChanged();
+    // void defaultMarkChanged(mixxx::qml::QmlWaveformMark*);
 
   private:
     QColor m_playMarkerColor;

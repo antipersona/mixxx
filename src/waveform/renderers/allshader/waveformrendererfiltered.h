@@ -24,7 +24,7 @@ class allshader::WaveformRendererFiltered final
   private:
     const bool m_bRgbStacked;
     bool preprocessInner();
-    constexpr int m_numBands = 4;
+    constexpr static int m_numBands = 4;
     float m_allGain = .85; // fix temporal porque bandGain no parece funcionar
 
     DISALLOW_COPY_AND_ASSIGN(WaveformRendererFiltered);
