@@ -80,7 +80,7 @@ bool WaveformRendererFiltered::preprocessInner() {
 
     // Per-band gain from the EQ knobs.
     float allGain(1.0);
-    float bandGain[4] = {1.0, 1.0, 1.0, 1.0};
+    float bandGain[5] = {1.0, 1.0, 1.0, 1.0, 1.0};
 //     getGains(&allGain, true, &bandGain[0], &bandGain[1], &bandGain[2]);
 
     const float breadth = static_cast<float>(m_waveformRenderer->getBreadth());
@@ -110,15 +110,18 @@ bool WaveformRendererFiltered::preprocessInner() {
         rgb[0] = QVector3D(static_cast<float>(0),
                 static_cast<float>(86/255.f),
                 static_cast<float>(1));
-        rgb[2] = QVector3D(static_cast<float>(252.f/255.f),
+        rgb[1] = QVector3D(static_cast<float>(252.f/255.f),
                 static_cast<float>(169.f/255.f), // m_rgbMidColor_g
                 static_cast<float>(1.f/255.f));
-        rgb[1] = QVector3D(static_cast<float>(181.f/255.f),
+        rgb[2] = QVector3D(static_cast<float>(181.f/255.f), // mid-lows
                 static_cast<float>(107.f/255.f),
                 static_cast<float>(4.f/255.f));
         rgb[3] = QVector3D(static_cast<float>(246.f/255.f),
                 static_cast<float>(235.f/255.f),
                 static_cast<float>(215.f/255.f));
+        rgb[4] = QVector3D(static_cast<float>(249.f/255.f), // mid-highs
+                static_cast<float>(202.f/255.f),
+                static_cast<float>(108.f/255.f));
     } else {
         rgb[0] = QVector3D(static_cast<float>(m_lowColor_r),
                 static_cast<float>(m_lowColor_g),
@@ -132,6 +135,9 @@ bool WaveformRendererFiltered::preprocessInner() {
         rgb[3] = QVector3D(static_cast<float>(m_highColor_r),
                 static_cast<float>(m_highColor_g),
                 static_cast<float>(m_highColor_b));
+        rgb[4] = QVector3D(static_cast<float>(m_highColor_r),
+                static_cast<float>(m_highColor_g),
+                static_cast<float>(m_highColor_b));
     }
 
     RGBVertexUpdater axisVertexUpdater{geometry().vertexDataAs<Geometry::RGBColoredPoint2D>()};
@@ -143,7 +149,8 @@ bool WaveformRendererFiltered::preprocessInner() {
                     static_cast<float>(m_axesColor_g),
                     static_cast<float>(m_axesColor_b)});
 
-    RGBVertexUpdater vertexUpdater[4]{
+        // reserve space for 5 bands
+    RGBVertexUpdater vertexUpdater[m_numBands]{ 
                 {geometry().vertexDataAs<Geometry::RGBColoredPoint2D>() +
                         numVerticesPerLine},
                 {geometry().vertexDataAs<Geometry::RGBColoredPoint2D>() +
@@ -151,7 +158,10 @@ bool WaveformRendererFiltered::preprocessInner() {
                 {geometry().vertexDataAs<Geometry::RGBColoredPoint2D>() +
                         numVerticesPerLine * (1 + pixelLength * 2)},
                 {geometry().vertexDataAs<Geometry::RGBColoredPoint2D>() +
-                        numVerticesPerLine * (1 + pixelLength * 3)}};
+                        numVerticesPerLine * (1 + pixelLength * 3)},
+                {geometry().vertexDataAs<Geometry::RGBColoredPoint2D>() +
+                        numVerticesPerLine * (1 + pixelLength * 4)}
+                };
 
     const double maxSamplingRange = visualIncrementPerPixel / 2.0;
 
@@ -165,7 +175,7 @@ bool WaveformRendererFiltered::preprocessInner() {
 
         const float fpos = static_cast<float>(pos) * invDevicePixelRatio;
 
-        // 4 bands, 2 channels
+        // 5 bands, 2 channels
         float max[m_numBands][2]{};
         uchar u8max[3][2]{}; // 3 eqs?
         for (int chn = 0; chn < 2; chn++) {
@@ -176,10 +186,11 @@ bool WaveformRendererFiltered::preprocessInner() {
                 u8max[2][chn] = math_max(u8max[2][chn], waveformData.filtered.high);
             }
             // Cast to float
-            max[0][chn] = static_cast<float>(u8max[0][chn]);
-            max[1][chn] = static_cast<float>(u8max[1][chn]);
-            max[2][chn] = static_cast<float>(math_min(u8max[0][chn], u8max[1][chn])); // minimo entre medios y bajos
-            max[3][chn] = static_cast<float>(u8max[2][chn]);
+            max[0][chn] = static_cast<float>(u8max[0][chn]); // lows    
+            max[1][chn] = static_cast<float>(u8max[1][chn]); // mids
+            max[2][chn] = static_cast<float>(math_min(u8max[0][chn], u8max[1][chn])); // min between low and mid
+            max[3][chn] = static_cast<float>(u8max[2][chn]); // highs
+            max[4][chn] = static_cast<float>(math_min(u8max[1][chn], u8max[2][chn])); // highs
         }
 
         // TODO: this can be optimized by using one geometrynode per band
